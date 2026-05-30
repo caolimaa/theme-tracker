@@ -1,0 +1,1636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>US Stock Theme & Sub-Theme Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300..700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* ===================== DESIGN TOKENS ===================== */
+:root, [data-theme="light"] {
+  --color-bg: #0e1117;
+  --color-surface: #141820;
+  --color-surface-2: #1a2030;
+  --color-surface-offset: #1e2535;
+  --color-surface-offset-2: #232b3e;
+  --color-surface-dynamic: #2a3348;
+  --color-divider: #2d3650;
+  --color-border: #354060;
+  --color-text: #e8ecf4;
+  --color-text-muted: #8892aa;
+  --color-text-faint: #4a5470;
+  --color-text-inverse: #0e1117;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-highlight: #1e3a5f;
+  --color-success: #22c55e;
+  --color-success-muted: #16a34a;
+  --color-success-bg: #0f2b1a;
+  --color-error: #ef4444;
+  --color-error-muted: #dc2626;
+  --color-error-bg: #2b0f0f;
+  --color-warning: #f59e0b;
+  --color-gold: #f59e0b;
+  --color-orange: #fb923c;
+  --color-purple: #a78bfa;
+  --color-teal: #2dd4bf;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+  --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+  --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --font-display: 'Instrument Serif', Georgia, serif;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.6);
+  --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ===================== BASE RESET ===================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100dvh;
+  line-height: 1.6;
+}
+button { cursor: pointer; background: none; border: none; font: inherit; color: inherit; }
+table { border-collapse: collapse; width: 100%; }
+img, svg { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+
+/* ===================== LAYOUT ===================== */
+.app-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  min-height: 100dvh;
+}
+
+/* ===================== HEADER ===================== */
+.app-header {
+  grid-column: 1 / -1;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  gap: var(--space-4);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--color-text);
+  letter-spacing: -0.02em;
+}
+.logo svg { color: var(--color-primary); }
+.header-meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.market-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.market-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--color-success);
+  box-shadow: 0 0 6px var(--color-success);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.timeframe-group {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-surface-offset);
+  padding: var(--space-1);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+}
+.tf-btn {
+  padding: var(--space-1) var(--space-3);
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.tf-btn:hover { color: var(--color-text); }
+.tf-btn.active {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(59,130,246,0.4);
+}
+.last-updated {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+
+/* ===================== SIDEBAR ===================== */
+.sidebar {
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  overflow-y: auto;
+  padding: var(--space-4) 0;
+}
+.sidebar-section-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  border-radius: 0;
+  cursor: pointer;
+  transition: all var(--transition);
+  border-left: 3px solid transparent;
+  position: relative;
+}
+.nav-item:hover {
+  color: var(--color-text);
+  background: var(--color-surface-offset);
+}
+.nav-item.active {
+  color: var(--color-primary);
+  background: color-mix(in oklch, var(--color-primary) 10%, var(--color-surface));
+  border-left-color: var(--color-primary);
+}
+.nav-item .nav-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
+.nav-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-offset-2);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===================== MAIN CONTENT ===================== */
+.main-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-6);
+  background: var(--color-bg);
+}
+
+/* ===================== PAGE HEADER ===================== */
+.page-title-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+.page-title { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.page-subtitle { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-1); }
+.view-toggle {
+  display: flex;
+  gap: var(--space-1);
+  background: var(--color-surface-offset);
+  padding: 3px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.view-btn {
+  padding: 5px 10px;
+  border-radius: calc(var(--radius-md) - 1px);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.view-btn.active {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ===================== KPI ROW ===================== */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-card.bullish::before { background: linear-gradient(90deg, var(--color-success), transparent); }
+.kpi-card.bearish::before { background: linear-gradient(90deg, var(--color-error), transparent); }
+.kpi-card.neutral::before { background: linear-gradient(90deg, var(--color-primary), transparent); }
+.kpi-card.warning::before { background: linear-gradient(90deg, var(--color-warning), transparent); }
+.kpi-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-2);
+}
+.kpi-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-delta {
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+  font-weight: 500;
+}
+.kpi-delta.up { color: var(--color-success); }
+.kpi-delta.down { color: var(--color-error); }
+.kpi-delta.flat { color: var(--color-text-muted); }
+
+/* ===================== GRID VIEWS ===================== */
+.themes-heatmap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+}
+.theme-heatmap-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.theme-heatmap-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: color-mix(in oklch, var(--color-primary) 40%, var(--color-border));
+}
+.theme-heatmap-card.strong-up { background: color-mix(in oklch, var(--color-success) 12%, var(--color-surface)); border-color: color-mix(in oklch, var(--color-success) 25%, var(--color-border)); }
+.theme-heatmap-card.mild-up { background: color-mix(in oklch, var(--color-success) 6%, var(--color-surface)); border-color: color-mix(in oklch, var(--color-success) 12%, var(--color-border)); }
+.theme-heatmap-card.mild-down { background: color-mix(in oklch, var(--color-error) 6%, var(--color-surface)); border-color: color-mix(in oklch, var(--color-error) 12%, var(--color-border)); }
+.theme-heatmap-card.strong-down { background: color-mix(in oklch, var(--color-error) 12%, var(--color-surface)); border-color: color-mix(in oklch, var(--color-error) 25%, var(--color-border)); }
+
+.theme-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  letter-spacing: -0.01em;
+}
+.theme-change {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+.theme-change.up { color: var(--color-success); }
+.theme-change.down { color: var(--color-error); }
+.theme-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-divider);
+}
+.theme-rank {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.theme-stocks-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+}
+.theme-sparkline { height: 32px; margin: var(--space-2) 0; }
+.theme-momentum-bar {
+  height: 3px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-dynamic);
+  overflow: hidden;
+  margin-top: var(--space-2);
+}
+.theme-momentum-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+}
+
+/* ===================== TABLE VIEW ===================== */
+.table-container {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.data-table {
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+}
+.data-table thead {
+  background: var(--color-surface-offset);
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+.data-table th:hover { color: var(--color-text); }
+.data-table th .sort-icon { display: inline; opacity: 0.4; margin-left: 2px; }
+.data-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+.data-table tbody tr {
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.data-table tbody tr:hover { background: var(--color-surface-offset); }
+.data-table tbody tr:last-child td { border-bottom: none; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.pill.up { background: var(--color-success-bg); color: var(--color-success); }
+.pill.down { background: var(--color-error-bg); color: var(--color-error); }
+.pill.neutral { background: var(--color-surface-dynamic); color: var(--color-text-muted); }
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--color-surface-dynamic);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.rank-badge.top3 { background: color-mix(in oklch, var(--color-gold) 20%, var(--color-surface-dynamic)); color: var(--color-gold); }
+.change-bar-cell { min-width: 100px; }
+.change-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.change-bar-bg {
+  flex: 1;
+  height: 4px;
+  background: var(--color-surface-dynamic);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.change-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 1s cubic-bezier(0.16,1,0.3,1);
+}
+.change-value {
+  min-width: 52px;
+  text-align: right;
+  font-weight: 600;
+}
+.change-value.up { color: var(--color-success); }
+.change-value.down { color: var(--color-error); }
+
+/* ===================== DETAIL PANEL ===================== */
+.detail-panel {
+  display: none;
+  position: fixed;
+  top: 56px; right: 0;
+  width: 420px;
+  height: calc(100dvh - 56px);
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border);
+  z-index: 200;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+.detail-panel.open {
+  display: block;
+  transform: translateX(0);
+}
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface);
+  z-index: 10;
+}
+.detail-close {
+  width: 32px; height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface-offset);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted);
+  transition: all var(--transition);
+}
+.detail-close:hover { background: var(--color-surface-dynamic); color: var(--color-text); }
+.detail-body { padding: var(--space-5) var(--space-6); }
+.detail-section-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-3);
+  margin-top: var(--space-5);
+}
+.subtheme-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.subtheme-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  background: var(--color-surface-offset);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-divider);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.subtheme-row:hover { background: var(--color-surface-offset-2); border-color: var(--color-border); }
+.subtheme-name { font-size: var(--text-sm); font-weight: 500; flex: 1; }
+.subtheme-change { font-size: var(--text-sm); font-weight: 700; font-variant-numeric: tabular-nums; }
+.stocks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.stock-chip {
+  background: var(--color-surface-offset);
+  border: 1px solid var(--color-divider);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all var(--transition);
+  cursor: pointer;
+}
+.stock-chip:hover { background: var(--color-surface-offset-2); border-color: var(--color-border); }
+.stock-ticker { font-size: var(--text-xs); font-weight: 700; color: var(--color-primary); }
+.stock-name { font-size: 0.65rem; color: var(--color-text-muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px; }
+.stock-price-change { font-size: var(--text-xs); font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.stock-price-change.up { color: var(--color-success); }
+.stock-price-change.down { color: var(--color-error); }
+
+/* ===================== CHART AREA ===================== */
+.chart-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.chart-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+}
+.chart-card-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+.chart-card-sub {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-4);
+}
+.chart-wrapper { position: relative; height: 200px; }
+
+/* ===================== ROTATION ALERT ===================== */
+.rotation-section { margin-bottom: var(--space-6); }
+.rotation-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.rotation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+.rotation-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+}
+.rotation-card.gaining { border-left: 3px solid var(--color-success); }
+.rotation-card.losing { border-left: 3px solid var(--color-error); }
+.rotation-card-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: var(--space-3);
+}
+.rotation-card.gaining .rotation-card-title { color: var(--color-success); }
+.rotation-card.losing .rotation-card-title { color: var(--color-error); }
+.rotation-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-divider);
+  font-size: var(--text-xs);
+}
+.rotation-item:last-child { border-bottom: none; }
+.rotation-item-name { color: var(--color-text-muted); }
+.rotation-item-change { font-weight: 700; font-variant-numeric: tabular-nums; }
+.rotation-item-change.up { color: var(--color-success); }
+.rotation-item-change.down { color: var(--color-error); }
+
+/* ===================== BREADCRUMB ===================== */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  margin-bottom: var(--space-5);
+}
+.breadcrumb a { cursor: pointer; transition: color var(--transition); }
+.breadcrumb a:hover { color: var(--color-primary); }
+.breadcrumb-sep { opacity: 0.4; }
+
+/* ===================== SEARCH ===================== */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-surface-offset);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-5);
+  transition: border-color var(--transition);
+}
+.search-bar:focus-within { border-color: var(--color-primary); }
+.search-bar svg { color: var(--color-text-faint); flex-shrink: 0; }
+.search-input {
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  width: 100%;
+}
+.search-input::placeholder { color: var(--color-text-faint); }
+
+/* ===================== SKELETON ===================== */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-offset) 25%, var(--color-surface-dynamic) 50%, var(--color-surface-offset) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ===================== SCROLLBAR ===================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--color-bg); }
+::-webkit-scrollbar-thumb { background: var(--color-surface-dynamic); border-radius: var(--radius-full); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-border); }
+
+/* ===================== OVERLAY ===================== */
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 150;
+  backdrop-filter: blur(2px);
+}
+.overlay.active { display: block; }
+
+/* ===================== MOMENTUM SIGNALS ===================== */
+.signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.signal-badge.breakout { background: color-mix(in oklch, var(--color-primary) 15%, var(--color-surface-dynamic)); color: var(--color-primary); }
+.signal-badge.accelerating { background: color-mix(in oklch, var(--color-success) 15%, var(--color-surface-dynamic)); color: var(--color-success); }
+.signal-badge.fading { background: color-mix(in oklch, var(--color-warning) 15%, var(--color-surface-dynamic)); color: var(--color-warning); }
+.signal-badge.reversing { background: color-mix(in oklch, var(--color-error) 15%, var(--color-surface-dynamic)); color: var(--color-error); }
+
+/* ===================== TABS ===================== */
+.tab-row {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: var(--space-5);
+}
+.tab-btn {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--transition);
+}
+.tab-btn:hover { color: var(--color-text); }
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 1024px) {
+  .app-layout { grid-template-columns: 200px 1fr; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .chart-row { grid-template-columns: 1fr; }
+  .detail-panel { width: 360px; }
+}
+@media (max-width: 768px) {
+  .app-layout { grid-template-columns: 1fr; grid-template-rows: 56px auto 1fr; }
+  .sidebar { display: none; }
+  .sidebar.open { display: block; position: fixed; top: 56px; left: 0; height: calc(100dvh - 56px); z-index: 300; width: 240px; }
+  .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .rotation-grid { grid-template-columns: 1fr; }
+  .themes-heatmap { grid-template-columns: repeat(2, 1fr); }
+  .detail-panel { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="app-layout">
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="logo">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-label="ThemeFlow Logo">
+        <rect x="1" y="1" width="10" height="10" rx="2.5" fill="var(--color-primary)" opacity="0.9"/>
+        <rect x="14" y="1" width="13" height="6" rx="2.5" fill="var(--color-success)" opacity="0.8"/>
+        <rect x="14" y="10" width="13" height="4" rx="2" fill="var(--color-warning)" opacity="0.7"/>
+        <rect x="1" y="14" width="26" height="5" rx="2.5" fill="var(--color-purple)" opacity="0.6"/>
+        <rect x="1" y="22" width="16" height="5" rx="2.5" fill="var(--color-teal)" opacity="0.7"/>
+        <rect x="20" y="22" width="7" height="5" rx="2" fill="var(--color-error)" opacity="0.7"/>
+      </svg>
+      <span>ThemeFlow</span>
+    </div>
+
+    <div class="timeframe-group" id="tfGroup">
+      <button class="tf-btn active" data-tf="1D">1D</button>
+      <button class="tf-btn" data-tf="1W">1W</button>
+      <button class="tf-btn" data-tf="1M">1M</button>
+      <button class="tf-btn" data-tf="YTD">YTD</button>
+    </div>
+
+    <div class="header-meta">
+      <div class="market-status">
+        <div class="market-dot"></div>
+        <span id="marketStatusText">Market Open</span>
+      </div>
+      <span class="last-updated" id="lastUpdated">--</span>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-section-label">Navigation</div>
+    <div class="nav-item active" data-page="overview" onclick="switchPage('overview', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M1 1h6v6H1V1zm0 8h6v6H1V9zm8-8h6v6H9V1zm0 8h6v6H9V9z"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" data-page="heatmap" onclick="switchPage('heatmap', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M0 0h4v4H0V0zm6 0h4v4H6V0zm6 0h4v4h-4V0zM0 6h4v4H0V6zm6 0h4v4H6V6zm6 0h4v4h-4V6zM0 12h4v4H0v-4zm6 0h4v4H6v-4zm6 0h4v4h-4v-4z"/></svg>
+      Theme Heatmap
+    </div>
+    <div class="nav-item" data-page="rotation" onclick="switchPage('rotation', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/><path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/></svg>
+      Rotation Radar
+    </div>
+    <div class="nav-item" data-page="subthemes" onclick="switchPage('subthemes', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm0 2.122a2.25 2.25 0 1 0-1.5 0v.878A2.25 2.25 0 0 0 5.75 8.5h1.5v2.128a2.251 2.251 0 1 0 1.5 0V8.5h1.5a2.25 2.25 0 0 0 2.25-2.25v-.878a2.25 2.25 0 1 0-1.5 0v.878a.75.75 0 0 1-.75.75h-4.5A.75.75 0 0 1 5 6.25v-.878zm3.75 7.378a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zm3-8.75a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0z"/></svg>
+      Sub-Themes
+    </div>
+    <div class="nav-item" data-page="stocks" onclick="switchPage('stocks', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M0 0h1v15h15v1H0V0zm14.817 3.113a.5.5 0 0 1 .07.704l-4.5 5.5a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61 4.15-5.073a.5.5 0 0 1 .704-.07z"/></svg>
+      Top Stocks
+    </div>
+    <div class="sidebar-section-label">Signals</div>
+    <div class="nav-item" data-page="breakouts" onclick="switchPage('breakouts', this)">
+      <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/><path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"/></svg>
+      Breakout Themes
+      <span class="nav-badge" id="breakoutBadge">0</span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="mainContent">
+    <!-- Pages rendered by JS -->
+  </main>
+</div>
+
+<!-- DETAIL PANEL OVERLAY -->
+<div class="overlay" id="overlay" onclick="closeDetail()"></div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-header">
+    <div>
+      <div id="detailTitle" style="font-size:var(--text-base);font-weight:700;"></div>
+      <div id="detailMeta" style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;"></div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()" aria-label="Close panel">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 1l12 12M13 1L1 13"/></svg>
+    </button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<script>
+// ===================== DATA =====================
+const THEMES_DATA = [
+  {
+    id: "ai-tech", name: "AI & Technology", icon: "🤖",
+    changes: { "1D": 2.34, "1W": 5.87, "1M": 11.2, "YTD": 28.4 },
+    momentum: "breakout",
+    subthemes: [
+      { name: "Large-Cap AI", stocks: ["NVDA","MSFT","GOOG","META","AMZN"], changes: { "1D": 3.1, "1W": 7.2, "1M": 14.5, "YTD": 35.2 } },
+      { name: "AI Infrastructure", stocks: ["SMCI","ANET","CDNS","MRVL","AVGO"], changes: { "1D": 2.8, "1W": 6.5, "1M": 13.2, "YTD": 32.1 } },
+      { name: "AI Software & SaaS", stocks: ["CRM","SNOW","PLTR","AI","PATH"], changes: { "1D": 1.9, "1W": 4.8, "1M": 9.8, "YTD": 22.3 } },
+      { name: "Semiconductor Design", stocks: ["NVDA","AMD","QCOM","INTC","TSM"], changes: { "1D": 2.6, "1W": 6.1, "1M": 12.7, "YTD": 31.5 } },
+    ]
+  },
+  {
+    id: "energy", name: "Energy & Clean Tech", icon: "⚡",
+    changes: { "1D": 1.87, "1W": 3.12, "1M": 7.4, "YTD": 15.3 },
+    momentum: "accelerating",
+    subthemes: [
+      { name: "Solar Energy", stocks: ["ENPH","SEDG","FSLR","RUN","SPWR"], changes: { "1D": 2.4, "1W": 4.2, "1M": 9.5, "YTD": 18.7 } },
+      { name: "Nuclear Power", stocks: ["CEG","VST","NRG","ETR","PPL"], changes: { "1D": 2.1, "1W": 5.3, "1M": 11.2, "YTD": 24.6 } },
+      { name: "Oil & Gas", stocks: ["XOM","CVX","COP","OXY","HAL"], changes: { "1D": 1.2, "1W": 1.8, "1M": 4.3, "YTD": 8.9 } },
+      { name: "EV & Battery", stocks: ["TSLA","RIVN","LCID","QS","CHPT"], changes: { "1D": 1.5, "1W": 2.6, "1M": 5.8, "YTD": 12.4 } },
+    ]
+  },
+  {
+    id: "defense", name: "Defense & Security", icon: "🛡️",
+    changes: { "1D": 1.52, "1W": 4.21, "1M": 9.8, "YTD": 22.1 },
+    momentum: "accelerating",
+    subthemes: [
+      { name: "Aerospace & Defense", stocks: ["LMT","NOC","RTX","BA","GD"], changes: { "1D": 1.8, "1W": 4.9, "1M": 11.3, "YTD": 25.8 } },
+      { name: "Cyber Security", stocks: ["CRWD","PANW","FTNT","ZS","S"], changes: { "1D": 1.6, "1W": 4.3, "1M": 10.1, "YTD": 23.4 } },
+      { name: "Drone & Autonomy", stocks: ["RCAT","ACHR","JOBY","KTOS","AMMO"], changes: { "1D": 2.3, "1W": 6.1, "1M": 14.7, "YTD": 33.2 } },
+    ]
+  },
+  {
+    id: "biotech", name: "Biotech & Healthcare", icon: "🧬",
+    changes: { "1D": -0.43, "1W": -1.82, "1M": 2.1, "YTD": 5.8 },
+    momentum: "fading",
+    subthemes: [
+      { name: "GLP-1 / Weight Loss", stocks: ["NVO","LLY","HIMS","ZEAL","ALT"], changes: { "1D": 0.8, "1W": 1.2, "1M": 6.4, "YTD": 14.3 } },
+      { name: "Gene Editing", stocks: ["BEAM","CRSP","NTLA","EDIT","VERV"], changes: { "1D": -1.2, "1W": -3.5, "1M": 1.2, "YTD": 3.8 } },
+      { name: "Cancer Immunotherapy", stocks: ["MRNA","BNTX","KYMR","ARVN","RCKT"], changes: { "1D": -0.9, "1W": -2.8, "1M": 0.8, "YTD": 2.1 } },
+      { name: "MedTech Devices", stocks: ["ISRG","DXCM","ALGN","NARI","AXNX"], changes: { "1D": -0.3, "1W": -0.9, "1M": 3.1, "YTD": 7.4 } },
+    ]
+  },
+  {
+    id: "financials", name: "Financials & Fintech", icon: "💰",
+    changes: { "1D": 0.89, "1W": 2.34, "1M": 5.6, "YTD": 12.4 },
+    momentum: "accelerating",
+    subthemes: [
+      { name: "Big Banks", stocks: ["JPM","BAC","WFC","GS","MS"], changes: { "1D": 0.7, "1W": 1.9, "1M": 4.8, "YTD": 10.6 } },
+      { name: "Digital Payments", stocks: ["V","MA","PYPL","SQ","FI"], changes: { "1D": 1.1, "1W": 2.8, "1M": 6.4, "YTD": 14.2 } },
+      { name: "Crypto & DeFi", stocks: ["COIN","MSTR","MARA","RIOT","HUT"], changes: { "1D": 1.8, "1W": 4.6, "1M": 11.3, "YTD": 26.7 } },
+      { name: "Insurance", stocks: ["PGR","CB","TRV","MKL","HIG"], changes: { "1D": 0.5, "1W": 1.4, "1M": 3.7, "YTD": 8.1 } },
+    ]
+  },
+  {
+    id: "consumer", name: "Consumer & Retail", icon: "🛍️",
+    changes: { "1D": -0.67, "1W": -0.92, "1M": 1.8, "YTD": 3.2 },
+    momentum: "fading",
+    subthemes: [
+      { name: "Luxury & Brands", stocks: ["LVMH","TPR","RL","TIF","CPRI"], changes: { "1D": -0.4, "1W": -0.6, "1M": 2.1, "YTD": 4.5 } },
+      { name: "E-Commerce", stocks: ["AMZN","SHOP","ETSY","EBAY","W"], changes: { "1D": -0.9, "1W": -1.4, "1M": 1.3, "YTD": 2.8 } },
+      { name: "Restaurants & Food", stocks: ["MCD","SBUX","CMG","DPZ","YUM"], changes: { "1D": -0.7, "1W": -0.9, "1M": 1.9, "YTD": 3.4 } },
+    ]
+  },
+  {
+    id: "realestate", name: "Real Estate & REITs", icon: "🏢",
+    changes: { "1D": -1.23, "1W": -2.67, "1M": -1.4, "YTD": -4.2 },
+    momentum: "reversing",
+    subthemes: [
+      { name: "Data Center REITs", stocks: ["EQIX","DLR","CONE","QTS","SWCH"], changes: { "1D": 0.3, "1W": 0.8, "1M": 2.4, "YTD": 5.7 } },
+      { name: "Office REITs", stocks: ["BXP","VNO","SLG","HIW","CXP"], changes: { "1D": -2.1, "1W": -4.8, "1M": -5.3, "YTD": -11.2 } },
+      { name: "Residential REITs", stocks: ["INVH","AMH","NRZ","AGNC","EQR"], changes: { "1D": -1.4, "1W": -3.1, "1M": -2.8, "YTD": -6.8 } },
+    ]
+  },
+  {
+    id: "materials", name: "Materials & Commodities", icon: "⛏️",
+    changes: { "1D": 0.45, "1W": 1.23, "1M": 3.8, "YTD": 8.9 },
+    momentum: "accelerating",
+    subthemes: [
+      { name: "Gold & Precious Metals", stocks: ["GLD","NEM","AEM","WPM","RGLD"], changes: { "1D": 0.8, "1W": 2.1, "1M": 5.6, "YTD": 13.4 } },
+      { name: "Copper & Base Metals", stocks: ["FCX","SCCO","HBM","TECK","RIO"], changes: { "1D": 0.6, "1W": 1.7, "1M": 4.3, "YTD": 10.2 } },
+      { name: "Steel & Industrials", stocks:["X","NUE","STLD","CLF","MT"], changes: { "1D": 0.2, "1W": 0.7, "1M": 2.4, "YTD": 5.8 } },
+    ]
+  },
+  {
+    id: "space", name: "Space & Frontier Tech", icon: "🚀",
+    changes: { "1D": 3.12, "1W": 7.45, "1M": 16.8, "YTD": 42.3 },
+    momentum: "breakout",
+    subthemes: [
+      { name: "Space Exploration", stocks: ["RKLB","SPCE","ASTR","MNTS","BKSY"], changes: { "1D": 4.2, "1W": 9.8, "1M": 22.4, "YTD": 56.8 } },
+      { name: "Satellite & Comm", stocks: ["VSAT","IRDM","GSAT","TSAT","ViaSat"], changes: { "1D": 2.8, "1W": 6.7, "1M": 15.3, "YTD": 38.7 } },
+      { name: "Quantum Computing", stocks: ["IONQ","RGTI","QUBT","IBM","MSFT"], changes: { "1D": 3.4, "1W": 8.2, "1M": 18.9, "YTD": 47.5 } },
+    ]
+  },
+  {
+    id: "transport", name: "Transport & Logistics", icon: "🚢",
+    changes: { "1D": -0.18, "1W": 0.54, "1M": 2.3, "YTD": 4.7 },
+    momentum: "fading",
+    subthemes: [
+      { name: "Airlines", stocks: ["DAL","UAL","AAL","LUV","JBLU"], changes: { "1D": 0.3, "1W": 0.9, "1M": 3.1, "YTD": 7.2 } },
+      { name: "Shipping", stocks: ["ZIM","MATX","SBLK","GSL","GOGL"], changes: { "1D": -0.6, "1W": 0.2, "1M": 1.8, "YTD": 3.4 } },
+      { name: "Trucking & Rail", stocks: ["UNP","CSX","NSC","ODFL","JBHT"], changes: { "1D": -0.3, "1W": 0.6, "1M": 2.4, "YTD": 5.2 } },
+    ]
+  },
+  {
+    id: "infra", name: "Infrastructure & Utilities", icon: "🏗️",
+    changes: { "1D": 0.32, "1W": 0.91, "1M": 2.9, "YTD": 6.8 },
+    momentum: "accelerating",
+    subthemes: [
+      { name: "Grid & Power", stocks: ["NEE","SO","DUK","AES","EXC"], changes: { "1D": 0.5, "1W": 1.3, "1M": 3.7, "YTD": 8.9 } },
+      { name: "Water Infrastructure", stocks: ["AWK","WTR","CWCO","MSEX","SJW"], changes: { "1D": 0.2, "1W": 0.7, "1M": 2.2, "YTD": 5.1 } },
+      { name: "Telecom", stocks: ["T","VZ","TMUS","DISH","LUMN"], changes: { "1D": 0.3, "1W": 0.8, "1M": 2.5, "YTD": 5.9 } },
+    ]
+  },
+  {
+    id: "macro", name: "Macro & Rates Sensitive", icon: "📊",
+    changes: { "1D": -0.85, "1W": -1.94, "1M": -0.7, "YTD": -2.1 },
+    momentum: "reversing",
+    subthemes: [
+      { name: "Treasury & Bonds", stocks: ["TLT","IEF","SHY","AGG","BND"], changes: { "1D": -1.1, "1W": -2.4, "1M": -1.5, "YTD": -3.8 } },
+      { name: "Dividend Aristocrats", stocks: ["JNJ","PG","KO","PEP","MMM"], changes: { "1D": -0.6, "1W": -1.5, "1M": 0.3, "YTD": -0.4 } },
+    ]
+  },
+];
+
+// ===================== STATE =====================
+let currentTF = "1D";
+let currentPage = "overview";
+let currentThemeId = null;
+let chartInstances = {};
+
+// ===================== HELPERS =====================
+function getChange(theme, tf) {
+  if (typeof theme.changes === 'object' && theme.changes[tf] !== undefined) return theme.changes[tf];
+  return 0;
+}
+function colorClass(val) {
+  if (val > 1.5) return "strong-up";
+  if (val > 0) return "mild-up";
+  if (val > -1.5) return "mild-down";
+  return "strong-down";
+}
+function changeDisplay(val, includeSign = true) {
+  const sign = val > 0 ? "+" : "";
+  return `${sign}${val.toFixed(2)}%`;
+}
+function changeColorClass(val) { return val >= 0 ? "up" : "down"; }
+function momentumBadge(m) {
+  const map = {
+    breakout: '<span class="signal-badge breakout">⚡ Breakout</span>',
+    accelerating: '<span class="signal-badge accelerating">▲ Accelerating</span>',
+    fading: '<span class="signal-badge fading">◼ Fading</span>',
+    reversing: '<span class="signal-badge reversing">▼ Reversing</span>',
+  };
+  return map[m] || "";
+}
+function rankOf(themes, theme) {
+  const sorted = [...themes].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+  return sorted.findIndex(t => t.id === theme.id) + 1;
+}
+function getBarWidth(val, maxAbs) {
+  return Math.min(Math.abs(val) / maxAbs * 100, 100);
+}
+function generateSparkPath(baseVal, length = 12) {
+  let prices = [100];
+  for (let i = 1; i < length; i++) {
+    prices.push(prices[i-1] + (Math.random() - 0.45) * 3);
+  }
+  const last = prices[prices.length - 1];
+  const target = 100 + baseVal * 0.6;
+  const scale = target / last;
+  prices = prices.map(p => p * scale);
+  const min = Math.min(...prices), max = Math.max(...prices);
+  const range = max - min || 1;
+  const w = 72, h = 28;
+  const pts = prices.map((p, i) => {
+    const x = (i / (length - 1)) * w;
+    const y = h - ((p - min) / range) * h;
+    return `${x},${y}`;
+  });
+  return `M ${pts.join(" L ")}`;
+}
+function sparklineHTML(val) {
+  const color = val >= 0 ? "var(--color-success)" : "var(--color-error)";
+  const path = generateSparkPath(val);
+  return `<svg viewBox="0 0 72 28" preserveAspectRatio="none" style="width:100%;height:100%;"><path d="${path}" fill="none" stroke="${color}" stroke-width="1.8"/></svg>`;
+}
+function formatTime() {
+  const now = new Date();
+  return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ===================== PAGES =====================
+
+function renderOverview() {
+  const sorted = [...THEMES_DATA].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+  const gainers = sorted.filter(t => getChange(t, currentTF) > 0);
+  const losers = sorted.filter(t => getChange(t, currentTF) < 0);
+  const maxChange = Math.max(...THEMES_DATA.map(t => Math.abs(getChange(t, currentTF))));
+  const breakouts = THEMES_DATA.filter(t => t.momentum === "breakout");
+  document.getElementById("breakoutBadge").textContent = breakouts.length;
+
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Overview</span>
+    </div>
+
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">Theme Overview</h1>
+        <p class="page-subtitle">Track sector rotation and theme momentum across US equities</p>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi-card bullish">
+        <div class="kpi-label">Leading Themes</div>
+        <div class="kpi-value" style="color:var(--color-success)">${gainers.length}</div>
+        <div class="kpi-delta up">↑ ${gainers.length} of ${THEMES_DATA.length} themes positive</div>
+      </div>
+      <div class="kpi-card bearish">
+        <div class="kpi-label">Lagging Themes</div>
+        <div class="kpi-value" style="color:var(--color-error)">${losers.length}</div>
+        <div class="kpi-delta down">↓ ${losers.length} themes under pressure</div>
+      </div>
+      <div class="kpi-card neutral">
+        <div class="kpi-label">Breakout Signals</div>
+        <div class="kpi-value" style="color:var(--color-primary)">${breakouts.length}</div>
+        <div class="kpi-delta up">⚡ ${breakouts.map(t=>t.name.split(' ')[0]).join(', ')}</div>
+      </div>
+      <div class="kpi-card warning">
+        <div class="kpi-label">Strongest Theme</div>
+        <div class="kpi-value" style="font-size:var(--text-base)">${sorted[0].name.split(' ')[0]}</div>
+        <div class="kpi-delta up">+${getChange(sorted[0], currentTF).toFixed(2)}% this period</div>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-card">
+        <div class="chart-card-title">Theme Performance Ranking</div>
+        <div class="chart-card-sub">All themes sorted by ${currentTF} performance</div>
+        <div class="chart-wrapper"><canvas id="barChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Momentum Distribution</div>
+        <div class="chart-card-sub">Breakdown by signal type</div>
+        <div class="chart-wrapper"><canvas id="doughnutChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="rotation-section">
+      <div class="rotation-title">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="var(--color-warning)"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/></svg>
+        Rotation Signals — ${currentTF}
+      </div>
+      <div class="rotation-grid">
+        <div class="rotation-card gaining">
+          <div class="rotation-card-title">🟢 Capital Inflow</div>
+          ${sorted.slice(0, 5).map(t => `
+            <div class="rotation-item" onclick="openDetail('${t.id}')">
+              <span class="rotation-item-name">${t.icon} ${t.name}</span>
+              <span class="rotation-item-change up">${changeDisplay(getChange(t, currentTF))}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="rotation-card losing">
+          <div class="rotation-card-title">🔴 Capital Outflow</div>
+          ${sorted.slice(-5).reverse().map(t => `
+            <div class="rotation-item" onclick="openDetail('${t.id}')">
+              <span class="rotation-item-name">${t.icon} ${t.name}</span>
+              <span class="rotation-item-change down">${changeDisplay(getChange(t, currentTF))}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderHeatmap() {
+  const sorted = [...THEMES_DATA].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+  const maxAbs = Math.max(...THEMES_DATA.map(t => Math.abs(getChange(t, currentTF))));
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Heatmap</span>
+    </div>
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">Theme Heatmap</h1>
+        <p class="page-subtitle">Visual heat map — click any theme to drill into sub-themes and stocks</p>
+      </div>
+    </div>
+    <div class="themes-heatmap">
+      ${sorted.map((t, i) => {
+        const val = getChange(t, currentTF);
+        const cc = colorClass(val);
+        const barW = getBarWidth(val, maxAbs);
+        return `
+          <div class="theme-heatmap-card ${cc}" onclick="openDetail('${t.id}')">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <span style="font-size:1.2em;">${t.icon}</span>
+              ${momentumBadge(t.momentum)}
+            </div>
+            <div class="theme-name" style="margin-top:var(--space-2)">${t.name}</div>
+            <div class="theme-sparkline">${sparklineHTML(val)}</div>
+            <div class="theme-change ${changeColorClass(val)}">${changeDisplay(val)}</div>
+            <div class="theme-momentum-bar">
+              <div class="theme-momentum-fill" style="width:${barW}%;background:${val >= 0 ? 'var(--color-success)' : 'var(--color-error)'}"></div>
+            </div>
+            <div class="theme-meta">
+              <span class="theme-rank">Rank #${i + 1}</span>
+              <span class="theme-stocks-count">${t.subthemes.length} sub-themes</span>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderRotation() {
+  const sorted = [...THEMES_DATA].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Rotation Radar</span>
+    </div>
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">Rotation Radar</h1>
+        <p class="page-subtitle">Identify capital rotation across all themes in real-time</p>
+      </div>
+    </div>
+    <div class="chart-row">
+      <div class="chart-card" style="grid-column:1/-1;">
+        <div class="chart-card-title">Rotation Bubble Map — ${currentTF} Performance</div>
+        <div class="chart-card-sub">Themes ordered by strength — size indicates momentum intensity</div>
+        <div class="chart-wrapper" style="height:260px;"><canvas id="rotationChart"></canvas></div>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Theme</th>
+            <th>Signal</th>
+            <th>Performance ${currentTF}</th>
+            <th>Sub-themes</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${sorted.map((t, i) => {
+            const val = getChange(t, currentTF);
+            const maxAbs = Math.max(...THEMES_DATA.map(x => Math.abs(getChange(x, currentTF))));
+            const barW = getBarWidth(val, maxAbs);
+            return `
+              <tr onclick="openDetail('${t.id}')">
+                <td><span class="rank-badge ${i < 3 ? 'top3' : ''}">${i+1}</span></td>
+                <td><span style="margin-right:var(--space-2)">${t.icon}</span><strong>${t.name}</strong></td>
+                <td>${momentumBadge(t.momentum)}</td>
+                <td class="change-bar-cell">
+                  <div class="change-bar-wrap">
+                    <div class="change-bar-bg">
+                      <div class="change-bar-fill" style="width:${barW}%;background:${val>=0?'var(--color-success)':'var(--color-error)'}"></div>
+                    </div>
+                    <span class="change-value ${changeColorClass(val)}">${changeDisplay(val)}</span>
+                  </div>
+                </td>
+                <td style="color:var(--color-text-muted)">${t.subthemes.length}</td>
+                <td>${sparklineHTML(val)}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderSubthemes() {
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Sub-Themes</span>
+    </div>
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">All Sub-Themes</h1>
+        <p class="page-subtitle">Granular view of every sub-theme across all parent themes</p>
+      </div>
+    </div>
+    <div class="search-bar">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.44 1.398A5.5 5.5 0 1 1 12 6.5a5.5 5.5 0 0 1-5.698 5.242z"/></svg>
+      <input class="search-input" type="text" placeholder="Search sub-themes..." id="subthemeSearch" oninput="filterSubthemes(this.value)">
+    </div>
+    <div id="subthemeTableContainer">
+      ${renderSubthemeTable('')}
+    </div>
+  `;
+}
+
+function renderSubthemeTable(filter) {
+  let rows = [];
+  THEMES_DATA.forEach(theme => {
+    theme.subthemes.forEach(sub => {
+      if (!filter || sub.name.toLowerCase().includes(filter.toLowerCase()) || theme.name.toLowerCase().includes(filter.toLowerCase())) {
+        rows.push({ theme, sub });
+      }
+    });
+  });
+  rows.sort((a, b) => getChange(b.sub, currentTF) - getChange(a.sub, currentTF));
+  const maxAbs = Math.max(...rows.map(r => Math.abs(getChange(r.sub, currentTF))));
+
+  return `
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Parent Theme</th>
+            <th>Sub-Theme</th>
+            <th>Performance ${currentTF}</th>
+            <th>Key Stocks</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows.map((r, i) => {
+            const val = getChange(r.sub, currentTF);
+            const barW = getBarWidth(val, maxAbs);
+            return `
+              <tr onclick="openDetail('${r.theme.id}')">
+                <td><span class="rank-badge ${i < 3 ? 'top3' : ''}">${i+1}</span></td>
+                <td>
+                  <span style="margin-right:5px">${r.theme.icon}</span>
+                  <span style="color:var(--color-text-muted);font-size:var(--text-xs)">${r.theme.name}</span>
+                </td>
+                <td><strong>${r.sub.name}</strong></td>
+                <td class="change-bar-cell">
+                  <div class="change-bar-wrap">
+                    <div class="change-bar-bg">
+                      <div class="change-bar-fill" style="width:${barW}%;background:${val>=0?'var(--color-success)':'var(--color-error)'}"></div>
+                    </div>
+                    <span class="change-value ${changeColorClass(val)}">${changeDisplay(val)}</span>
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    ${r.sub.stocks.slice(0,4).map(s => `<span class="pill ${changeColorClass(val)}" style="font-size:0.6rem">${s}</span>`).join('')}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderTopStocks() {
+  let all = [];
+  THEMES_DATA.forEach(theme => {
+    theme.subthemes.forEach(sub => {
+      const subChange = getChange(sub, currentTF);
+      sub.stocks.forEach(ticker => {
+        const noise = (Math.random() - 0.45) * 1.5;
+        all.push({ ticker, subName: sub.name, themeName: theme.name, themeIcon: theme.icon, change: subChange + noise, momentum: theme.momentum });
+      });
+    });
+  });
+  all.sort((a, b) => b.change - a.change);
+  const top20 = all.slice(0, 20);
+  const maxAbs = Math.max(...top20.map(s => Math.abs(s.change)));
+
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Top Stocks</span>
+    </div>
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">Top Stocks by Theme</h1>
+        <p class="page-subtitle">Best-performing stocks ranked by theme momentum — ${currentTF}</p>
+      </div>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Ticker</th>
+            <th>Theme → Sub-Theme</th>
+            <th>Signal</th>
+            <th>Est. Performance ${currentTF}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${top20.map((s, i) => {
+            const barW = getBarWidth(s.change, maxAbs);
+            return `
+              <tr>
+                <td><span class="rank-badge ${i < 3 ? 'top3' : ''}">${i+1}</span></td>
+                <td><strong style="color:var(--color-primary);font-size:var(--text-sm)">${s.ticker}</strong></td>
+                <td>
+                  <span style="color:var(--color-text-muted);font-size:var(--text-xs)">${s.themeIcon} ${s.themeName}</span>
+                  <span style="color:var(--color-text-faint);font-size:var(--text-xs)"> › ${s.subName}</span>
+                </td>
+                <td>${momentumBadge(s.momentum)}</td>
+                <td class="change-bar-cell">
+                  <div class="change-bar-wrap">
+                    <div class="change-bar-bg">
+                      <div class="change-bar-fill" style="width:${barW}%;background:${s.change>=0?'var(--color-success)':'var(--color-error)'}"></div>
+                    </div>
+                    <span class="change-value ${changeColorClass(s.change)}">${changeDisplay(s.change)}</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderBreakouts() {
+  const breakouts = THEMES_DATA.filter(t => t.momentum === "breakout" || t.momentum === "accelerating");
+  return `
+    <div class="breadcrumb">
+      <span>Dashboard</span>
+      <span class="breadcrumb-sep">›</span>
+      <span style="color:var(--color-text)">Breakout Themes</span>
+    </div>
+    <div class="page-title-bar">
+      <div>
+        <h1 class="page-title">Breakout & Accelerating Themes</h1>
+        <p class="page-subtitle">Early rotation signals — act fast before the crowd catches on</p>
+      </div>
+    </div>
+    ${breakouts.map(t => {
+      const val = getChange(t, currentTF);
+      return `
+        <div class="theme-heatmap-card strong-up" style="margin-bottom:var(--space-4);cursor:pointer" onclick="openDetail('${t.id}')">
+          <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;">
+            <span style="font-size:1.6em;">${t.icon}</span>
+            <div>
+              <div style="font-size:var(--text-base);font-weight:700;">${t.name}</div>
+              <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px">${t.subthemes.length} sub-themes • Click to drill in</div>
+            </div>
+            <div style="margin-left:auto;text-align:right;">
+              <div class="theme-change up" style="font-size:var(--text-lg)">${changeDisplay(val)}</div>
+              ${momentumBadge(t.momentum)}
+            </div>
+          </div>
+          <div style="margin-top:var(--space-4);display:flex;gap:var(--space-2);flex-wrap:wrap;">
+            ${t.subthemes.map(s => {
+              const sv = getChange(s, currentTF);
+              return `<span class="pill up">${s.name}: ${changeDisplay(sv)}</span>`;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+// ===================== DETAIL PANEL =====================
+function openDetail(themeId) {
+  const theme = THEMES_DATA.find(t => t.id === themeId);
+  if (!theme) return;
+  currentThemeId = themeId;
+  const val = getChange(theme, currentTF);
+  document.getElementById("detailTitle").textContent = `${theme.icon} ${theme.name}`;
+  document.getElementById("detailMeta").innerHTML = `${changeDisplay(val)} ${currentTF} &nbsp;•&nbsp; ${momentumBadge(theme.momentum)}`;
+  document.getElementById("detailBody").innerHTML = `
+    <div class="detail-section-title">Sub-Theme Breakdown</div>
+    <div class="subtheme-list">
+      ${theme.subthemes.map(s => {
+        const sv = getChange(s, currentTF);
+        return `
+          <div class="subtheme-row">
+            <div class="subtheme-name">${s.name}</div>
+            <div class="subtheme-change ${changeColorClass(sv)}">${changeDisplay(sv)}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+    <div class="detail-section-title">Key Stocks in Theme</div>
+    <div class="stocks-grid">
+      ${theme.subthemes.flatMap(s => s.stocks.slice(0,3).map(ticker => {
+        const sv = getChange(s, currentTF);
+        const noise = (Math.random() - 0.45) * 1.5;
+        const stockChange = sv + noise;
+        return `
+          <div class="stock-chip">
+            <div>
+              <div class="stock-ticker">${ticker}</div>
+              <div class="stock-name">${s.name}</div>
+            </div>
+            <div class="stock-price-change ${changeColorClass(stockChange)}">${changeDisplay(stockChange)}</div>
+          </div>
+        `;
+      })).slice(0, 12).join('')}
+    </div>
+    <div class="detail-section-title">Timeframe Comparison</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-2);margin-top:var(--space-2)">
+      ${["1D","1W","1M","YTD"].map(tf => {
+        const v = getChange(theme, tf);
+        return `
+          <div style="background:var(--color-surface-offset);border-radius:var(--radius-md);padding:var(--space-3);text-align:center;border:1px solid var(--color-divider)">
+            <div style="font-size:0.65rem;color:var(--color-text-faint);text-transform:uppercase;letter-spacing:.05em">${tf}</div>
+            <div style="font-size:var(--text-sm);font-weight:700;margin-top:4px;color:${v>=0?'var(--color-success)':'var(--color-error)'}">${changeDisplay(v)}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+  document.getElementById("detailPanel").classList.add("open");
+  document.getElementById("overlay").classList.add("active");
+}
+
+function closeDetail() {
+  document.getElementById("detailPanel").classList.remove("open");
+  document.getElementById("overlay").classList.remove("active");
+  currentThemeId = null;
+}
+
+// ===================== CHARTS =====================
+function destroyCharts() {
+  Object.values(chartInstances).forEach(c => { try { c.destroy(); } catch(e){} });
+  chartInstances = {};
+}
+
+function renderCharts() {
+  const sorted = [...THEMES_DATA].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+
+  if (document.getElementById("barChart")) {
+    const vals = sorted.map(t => getChange(t, currentTF));
+    chartInstances.bar = new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: {
+        labels: sorted.map(t => t.icon + " " + t.name.split(' ')[0]),
+        datasets: [{
+          data: vals,
+          backgroundColor: vals.map(v => v >= 0 ? "rgba(34,197,94,0.7)" : "rgba(239,68,68,0.7)"),
+          borderColor: vals.map(v => v >= 0 ? "rgba(34,197,94,1)" : "rgba(239,68,68,1)"),
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => changeDisplay(ctx.raw) }
+        }},
+        scales: {
+          x: { ticks: { color: "#8892aa", font: { size: 9 }, maxRotation: 45 }, grid: { color: "rgba(53,64,96,0.5)" } },
+          y: { ticks: { color: "#8892aa", font: { size: 10 }, callback: v => v + "%" }, grid: { color: "rgba(53,64,96,0.5)" } }
+        }
+      }
+    });
+  }
+
+  if (document.getElementById("doughnutChart")) {
+    const momentumCounts = { breakout: 0, accelerating: 0, fading: 0, reversing: 0 };
+    THEMES_DATA.forEach(t => momentumCounts[t.momentum]++);
+    chartInstances.donut = new Chart(document.getElementById("doughnutChart"), {
+      type: "doughnut",
+      data: {
+        labels: ["Breakout", "Accelerating", "Fading", "Reversing"],
+        datasets: [{
+          data: Object.values(momentumCounts),
+          backgroundColor: ["rgba(59,130,246,0.8)","rgba(34,197,94,0.8)","rgba(245,158,11,0.8)","rgba(239,68,68,0.8)"],
+          borderColor: "#141820", borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 700 },
+        plugins: {
+          legend: { position: "right", labels: { color: "#8892aa", font: { size: 11 }, padding: 12 } }
+        },
+        cutout: "65%"
+      }
+    });
+  }
+
+  if (document.getElementById("rotationChart")) {
+    const sorted2 = [...THEMES_DATA].sort((a, b) => getChange(b, currentTF) - getChange(a, currentTF));
+    const vals = sorted2.map(t => getChange(t, currentTF));
+    chartInstances.rotation = new Chart(document.getElementById("rotationChart"), {
+      type: "bar",
+      data: {
+        labels: sorted2.map(t => t.icon + " " + t.name.split(' ')[0]),
+        datasets: [{
+          label: `${currentTF} %`,
+          data: vals,
+          backgroundColor: vals.map(v => v >= 0 ? "rgba(34,197,94,0.6)" : "rgba(239,68,68,0.6)"),
+          borderColor: vals.map(v => v >= 0 ? "rgb(34,197,94)" : "rgb(239,68,68)"),
+          borderWidth: 1.5,
+          borderRadius: 5,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, animation: { duration: 800 },
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#8892aa", font: { size: 9 }, maxRotation: 40 }, grid: { color: "rgba(53,64,96,0.4)" } },
+          y: { ticks: { color: "#8892aa", font: { size: 10 }, callback: v => v + "%" }, grid: { color: "rgba(53,64,96,0.4)" } }
+        }
+      }
+    });
+  }
+}
+
+// ===================== NAVIGATION =====================
+function switchPage(page, el) {
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  if (el) el.classList.add("active");
+  currentPage = page;
+  renderPage();
+}
+
+function renderPage() {
+  destroyCharts();
+  const main = document.getElementById("mainContent");
+  switch(currentPage) {
+    case "overview": main.innerHTML = renderOverview(); break;
+    case "heatmap": main.innerHTML = renderHeatmap(); break;
+    case "rotation": main.innerHTML = renderRotation(); break;
+    case "subthemes": main.innerHTML = renderSubthemes(); break;
+    case "stocks": main.innerHTML = renderTopStocks(); break;
+    case "breakouts": main.innerHTML = renderBreakouts(); break;
+    default: main.innerHTML = renderOverview();
+  }
+  setTimeout(renderCharts, 50);
+}
+
+// ===================== TIMEFRAME =====================
+document.getElementById("tfGroup").addEventListener("click", e => {
+  const btn = e.target.closest(".tf-btn");
+  if (!btn) return;
+  document.querySelectorAll(".tf-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  currentTF = btn.dataset.tf;
+  renderPage();
+});
+
+// ===================== SEARCH =====================
+function filterSubthemes(val) {
+  document.getElementById("subthemeTableContainer").innerHTML = renderSubthemeTable(val);
+}
+
+// ===================== CLOCK & STATUS =====================
+function updateClock() {
+  const now = new Date();
+  const hour = now.getHours(), min = now.getMinutes();
+  const isWeekday = now.getDay() >= 1 && now.getDay() <= 5;
+  const isMarketHours = isWeekday && ((hour > 9 || (hour === 9 && min >= 30)) && hour < 16);
+  const dot = document.querySelector(".market-dot");
+  const statusText = document.getElementById("marketStatusText");
+  if (dot && statusText) {
+    if (isMarketHours) {
+      dot.style.background = "var(--color-success)";
+      dot.style.boxShadow = "0 0 6px var(--color-success)";
+      statusText.textContent = "Market Open";
+    } else {
+      dot.style.background = "var(--color-warning)";
+      dot.style.boxShadow = "0 0 6px var(--color-warning)";
+      statusText.textContent = "Market Closed";
+    }
+  }
+  const lu = document.getElementById("lastUpdated");
+  if (lu) lu.textContent = "Updated " + formatTime();
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ===================== INIT =====================
+renderPage();
+</script>
+</body>
+</html>
